@@ -2,4 +2,4 @@
 #!desc=For those JavaScripts who should be disabled after evaluation successful.
 
 [Script]
-Auto join TF = type=cron,cronexp=*/1 * * * * *,script-path=https://github.com/DecoAri/JavaScript/blob/main/Surge/Auto_join_TF.js?raw=true,wake-system=0,timeout=180
+Auto join TF = type=cron,cronexp=*/1 * * * * *,script-path=https://github.com/DecoAri/JavaScript/blob/main/Surge/Auto_join_TF.js?raw=true,wake-system=0,timeout=360
