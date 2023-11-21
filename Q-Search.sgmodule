@@ -28,11 +28,15 @@
 ^https:\/\/www\.google.com\/search\?q=rd\+([^&]+).+ https://www.reddit.com/search?q=$1 302
 ^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=rd\+([^&]+).+ https://www.reddit.com/search?q=$1 302
 # bi: 必應搜尋
-^https:\/\/www\.google.com\/search\?q=bi\+([^&]+).+ https://cn.bing.com/search?q=$1 302
-^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=bi\+([^&]+).+ https://cn.bing.com/search?q=$1 302
+^https:\/\/www\.google.com\/search\?q=bi\+([^&]+).+ https://bing.com/search?q=$1 302
+^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=bi\+([^&]+).+ https://bing.com/search?q=$1 302
 # ddg: DuckDuckGo
 ^https:\/\/www\.google.com\/search\?q=ddg\+([^&]+).+ https://duckduckgo.com/?ia=about&q=$1 302
 ^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=ddg\+([^&]+).+ https://duckduckgo.com/?ia=about&q=$1 302
+
+# kg: Kago
+^https:\/\/www\.google.com\/search\?q=kg\+([^&]+).+ https://kagi.com/search?q=$1 302
+^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=kg\+([^&]+).+ https://kagi.com/search?q=$1 302
 
 [MITM]
 hostname = %APPEND% www.google.com
