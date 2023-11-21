@@ -1,0 +1,38 @@
+#!name=🔍Q-Search-All in one
+#!desc=Adjust the browser search engine, default serach engine: google
+
+# 請先修改搜尋引擎設定，Safari 預設搜尋引擎為 Google
+# 原先支援iPhone iPad Safari，支援Mac Safari, Chrome, Edge。
+# 未註明表示未經測試
+# Safari內輸入"命令 + 空格 + 搜尋字詞或內容"來指定搜尋方式
+# gh：  GitHub搜尋
+# wiki: 英文維基百科
+# wk:   中文維基百科
+# rd: Reddit
+# bi: Bing 必應
+# ddg：DuckDuckGo 搜尋
+# 無指定預設為Google 搜尋
+# Source: https://github.com/DecoAri/Module/blob/main/Surge/Q-Search.sgmodule
+
+[URL Rewrite]
+# gh：GitHub
+^https:\/\/www\.google.com\/search\?q=gh\+([^&]+).+ https://github.com/search?q=$1 302
+^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=gh\+([^&]+).+ https://github.com/search?q=$1 302
+# wiki：英文維基百科
+^https:\/\/www\.google.com\/search\?q=wiki(\+|%20)([^&]+).+ http://wikipedia.org/wiki/$2 302
+^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=wiki(\+|%20)([^&]+).+ http://wikipedia.org/wiki/$2 302
+# wk：中文維基百科
+^https:\/\/www\.google.com\/search\?q=wk(\+|%20)([^&]+).+ https://zh.wikipedia.org/wiki/$2 302
+^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=wk(\+|%20)([^&]+).+ https://zh.wikipedia.org/wiki/$2 302
+# rd：Reddit
+^https:\/\/www\.google.com\/search\?q=rd\+([^&]+).+ https://www.reddit.com/search?q=$1 302
+^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=rd\+([^&]+).+ https://www.reddit.com/search?q=$1 302
+# bi: 必應搜尋
+^https:\/\/www\.google.com\/search\?q=bi\+([^&]+).+ https://cn.bing.com/search?q=$1 302
+^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=bi\+([^&]+).+ https://cn.bing.com/search?q=$1 302
+# ddg: DuckDuckGo
+^https:\/\/www\.google.com\/search\?q=ddg\+([^&]+).+ https://duckduckgo.com/?ia=about&q=$1 302
+^https:\/\/www\.google.com\/search\?client=\w+\&rls=\w+\&q=ddg\+([^&]+).+ https://duckduckgo.com/?ia=about&q=$1 302
+
+[MITM]
+hostname = %APPEND% www.google.com
