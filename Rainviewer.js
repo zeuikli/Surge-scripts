@@ -19,8 +19,8 @@ hostname = d1hzbu30hrhkoe.cloudfront.net
 
 var chxm1023 = JSON.parse($response.body);
 
-chxm1023.data = {
-  "message" : "",
+chxm1023.data = {...chxm1023.data,
+    "message" : "",
   "data" : {
     "is_grace" : false,
     "is_test" : false,
@@ -37,6 +37,6 @@ chxm1023.data = {
     "is_expired" : false
   },
   "code" : 0
-};
+  };
 
 $done({body : JSON.stringify(chxm1023)});
