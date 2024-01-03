@@ -19,8 +19,29 @@ hostname = d1hzbu30hrhkoe.cloudfront.net
 
 var chxm1023 = JSON.parse($response.body);
 
-chxm1023.data = {...chxm1023.data,
-    "message" : "",
+// chxm1023.data = {...chxm1023.data,
+//     "message" : "",
+//   "data" : {
+//     "is_grace" : false,
+//     "is_test" : false,
+//     "products" : [
+//       "PREMIUM_FEATURES_3_1MONTH"
+//     ],
+//     "id" : "480001752637582",
+//     "purchased" : true,
+//     "is_trial" : false,
+//     "is_cancelled" : true,
+//     "type" : 2,
+//     "has_orders" : true,
+//     "expiration" : 1706279895,
+//     "is_expired" : false
+//   },
+//   "code" : 0
+//   };
+
+
+chxm1023.data = {
+  "message" : "",
   "data" : {
     "is_grace" : false,
     "is_test" : false,
@@ -37,6 +58,6 @@ chxm1023.data = {...chxm1023.data,
     "is_expired" : false
   },
   "code" : 0
-  };
+}
 
 $done({body : JSON.stringify(chxm1023)});
