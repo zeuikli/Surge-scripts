@@ -1,14 +1,12 @@
 # NAME: Telegram
 # AUTHOR: ZeuikLi
-# UPDATED: 2024-11-20 09:56:33
+# UPDATED: 2024-11-20 10:08:33
 # DOMAIN: 2
-# DOMAIN-KEYWORD: 1
 # DOMAIN-SUFFIX: 22
 # IP-ASN: 5
 # IP-CIDR: 9
 # IP-CIDR6: 7
-# PROCESS-NAME: 4
-# TOTAL: 51
+# TOTAL: 45
 # Ref: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Telegram/Telegram.list
 # Ref: https://surge.wei1769.com/tg
 # Ref: https://www.rclogs.com/2024/05/telegram-dc-iprules
@@ -58,7 +56,3 @@ IP-ASN,44907,no-resolve
 IP-ASN,59930,no-resolve
 IP-ASN,62014,no-resolve
 IP-ASN,62041,no-resolve
-PROCESS-NAME,org.telegram.messenger
-PROCESS-NAME,telegram-desktop
-PROCESS-NAME,app.swiftgram.ios
-PROCESS-NAME,ph.telegra.Telegraph
