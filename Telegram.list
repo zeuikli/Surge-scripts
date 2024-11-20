@@ -9,6 +9,10 @@
 # IP-CIDR6: 7
 # PROCESS-NAME: 4
 # TOTAL: 51
+# Ref: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Telegram/Telegram.list
+# Ref: https://surge.wei1769.com/tg
+# Ref: https://www.rclogs.com/2024/05/telegram-dc-iprules
+# Ref: https://bgpview.io/search/TELEGRAM
 DOMAIN,api.imem.app
 DOMAIN,api.swiftgram.app
 DOMAIN-SUFFIX,cdn-telegram.org
