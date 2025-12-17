@@ -9,8 +9,5 @@
 Merlin_Get_Cookie = type=http-request, pattern=^https?:\/\/(www\.|api\.)?(getmerlin\.in|merlin\.foyer\.work)\/.*, script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js, requires-body=false
 Merlin_Panel = type=generic,timeout=10,script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js,argument=panel=true
 
-# (選用) 面板顯示目前的 Token 狀態
-Merlin_Panel = type=generic, timeout=10, script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js, argument=panel=true
-
 [MITM]
 hostname = %APPEND% merlin.foyer.work, api.getmerlin.in, www.getmerlin.in
