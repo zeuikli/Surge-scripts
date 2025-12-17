@@ -1,0 +1,15 @@
+
+
+#!name=Merlin Session Token Grabber
+#!desc=自動抓取 Merlin 的 Session Token 並複製到剪貼簿，以便在 merlin.2ac.io 使用。
+#!category=AI Tools
+
+[Script]
+# 攔截 Merlin 的請求以獲取 Cookie
+Merlin_Get_Cookie = type=http-request, pattern=^https?:\/\/(www\.|api\.)?(getmerlin\.in|merlin\.foyer\.work)\/.*, script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js, requires-body=false
+
+# (選用) 面板顯示目前的 Token 狀態
+Merlin_Panel = type=generic, timeout=10, script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js, argument=panel=true
+
+[MITM]
+hostname = %APPEND% merlin.foyer.work, api.getmerlin.in, www.getmerlin.in
