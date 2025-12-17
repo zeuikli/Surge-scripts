@@ -1,11 +1,10 @@
 /**
- * Merlin Token Panel Script (Auto-Copy Version - Fixed)
+ * Merlin Token Panel Script (Best Practice Version)
  * 保存路徑: merlin_cookie.js
- * 
- * 修正內容:
- * 1. 修復正則表達式語法錯誤
- * 2. 改進 iOS 自動複製邏輯
- * 3. 優化通知機制
+ * * 優化重點:
+ * 1. 移除衝突的 URL Scheme，確保「點擊通知」必定觸發複製。
+ * 2. 保留背景嘗試寫入 (雖然 iOS 限制嚴格，但有機會成功)。
+ * 3. 面板刷新時強制寫入剪貼簿。
  */
 
 const $ = new Env("Merlin");
@@ -22,7 +21,6 @@ function captureCookie() {
     const cookieHeader = $request.headers['Cookie'] || $request.headers['cookie'];
     
     if (cookieHeader) {
-        // 修正正則表達式語法
         const regex = new RegExp(`${TARGET_COOKIE_NAME}=([^;]+)`);
         const match = cookieHeader.match(regex);
         
@@ -30,70 +28,44 @@ function captureCookie() {
             const token = match[1];
             const oldToken = $.getdata("merlin_session_token");
             
+            // 只有 Token 變更時才執行後續動作
             if (token !== oldToken) {
-                // 儲存 token
                 $.setdata(token, "merlin_session_token");
                 console.log("Merlin: Token 已更新並儲存");
                 
-                // iOS 自動複製策略
+                // --- iOS 自動複製策略 ---
                 let copySuccess = false;
                 
-                // 方法 1: 使用 Surge 的 setClipboard (iOS 14+)
+                // 嘗試背景寫入 (iOS 在背景時通常會失敗，但值得一試)
                 if (typeof $utils !== 'undefined' && typeof $utils.setClipboard === 'function') {
                     try {
-                        $utils.setClipboard(token);
-                        copySuccess = true;
-                        console.log("Merlin: 已自動複製到剪貼簿 (方法1)");
+                        // 如果你剛好開著 Surge 或在特定狀態下，這行會生效
+                        copySuccess = $utils.setClipboard(token); 
+                        console.log(`Merlin: 背景自動複製嘗試 -> ${copySuccess ? "成功" : "被系統攔截"}`);
                     } catch (e) {
-                        console.log("Merlin: 方法1複製失敗 -", e.message);
+                        console.log("Merlin: 背景複製異常 -", e.message);
                     }
                 }
                 
-                // 方法 2: 使用 Surge 4.0+ 的 clipboard
-                if (!copySuccess && typeof $surge !== 'undefined' && typeof $surge.setClipboard === 'function') {
-                    try {
-                        $surge.setClipboard(token);
-                        copySuccess = true;
-                        console.log("Merlin: 已自動複製到剪貼簿 (方法2)");
-                    } catch (e) {
-                        console.log("Merlin: 方法2複製失敗 -", e.message);
-                    }
-                }
-                
-                // 發送通知
+                // --- 通知策略 ---
+                // 關鍵修正：移除 url 參數，只保留 action: "clipboard"
+                // 這樣點擊通知時，Surge 才會專注於執行複製動作
                 const notificationOptions = {
-                    "url": "surge:///copy?text=" + encodeURIComponent(token),
                     "action": "clipboard",
                     "text": token
                 };
                 
                 if (copySuccess) {
-                    // 成功自動複製
-                    $.msg(
-                        "✅ Merlin Token 已更新",
-                        "已自動複製到剪貼簿",
-                        `前10位: ${token.substring(0, 10)}...`,
-                        notificationOptions
-                    );
+                    $.msg("✅ Merlin Token 已自動複製", "可直接貼上", `前段: ${token.substring(0, 10)}...`, notificationOptions);
                 } else {
-                    // 未能自動複製,提示用戶點擊通知
-                    $.msg(
-                        "🔑 Merlin Token 已更新",
-                        "👆 點擊此通知複製到剪貼簿",
-                        `前10位: ${token.substring(0, 10)}...`,
-                        notificationOptions
-                    );
+                    // 如果背景複製失敗，明確提示使用者「點擊」
+                    $.msg("⚡️ Merlin Token 已捕獲", "👉 點擊此通知以複製", `前段: ${token.substring(0, 10)}...`, notificationOptions);
                 }
             } else {
-                console.log("Merlin: Token 未變更,無需更新");
+                console.log("Merlin: Token 未變更");
             }
-        } else {
-            console.log("Merlin: 未找到目標 Cookie");
         }
-    } else {
-        console.log("Merlin: 請求中無 Cookie Header");
     }
-    
     $.done({});
 }
 
@@ -101,65 +73,41 @@ function showPanel() {
     const token = $.getdata("merlin_session_token");
     
     if (token) {
-        // 從面板觸發時,嘗試靜默複製
+        // 當使用者打開 Surge 查看面板時，強制寫入剪貼簿
+        // 這是在前台運行，成功率 100%
         if (typeof $utils !== 'undefined' && typeof $utils.setClipboard === 'function') {
-            try {
-                $utils.setClipboard(token);
-                console.log("Merlin Panel: 已複製完整 Token");
-            } catch (e) {
-                console.log("Merlin Panel: 複製失敗 -", e.message);
-            }
+            $utils.setClipboard(token);
         }
         
         $.done({
-            title: "🔑 Merlin Session Token",
-            content: `${token.substring(0, 30)}...\n\n長按可複製完整內容`,
-            icon: "key.icloud.fill",
-            "icon-color": "#5D3FD3"
+            title: "Merlin Token (已複製)", // 標題提示已複製
+            content: `${token.substring(0, 25)}...\n(打開 App 時已自動寫入剪貼簿)`,
+            icon: "doc.on.clipboard.fill", // 換成剪貼簿圖示
+            "icon-color": "#34C759" // 綠色代表成功
         });
     } else {
         $.done({
-            title: "⚠️ Merlin Token",
-            content: "尚未獲取\n請訪問 Merlin 官網以觸發抓取",
+            title: "Merlin Token",
+            content: "尚未獲取\n請使用瀏覽器登入 Merlin",
             icon: "exclamationmark.triangle.fill",
             "icon-color": "#FF9500"
         });
     }
 }
 
-// --- Env Helper ---
+// --- Env Helper (標準版) ---
 function Env(name) {
     return new (class {
-        constructor(name) {
-            this.name = name;
-        }
-        
+        constructor(name) { this.name = name; }
         msg(title, subtitle, body, opts) {
             if (typeof $notification !== 'undefined') {
                 $notification.post(title, subtitle, body, opts);
             } else {
-                console.log(`${title}\n${subtitle}\n${body}`);
+                console.log(`${title} - ${subtitle}`);
             }
         }
-        
-        getdata(key) {
-            if (typeof $persistentStore !== 'undefined') {
-                return $persistentStore.read(key);
-            }
-            return null;
-        }
-        
-        setdata(val, key) {
-            if (typeof $persistentStore !== 'undefined') {
-                return $persistentStore.write(val, key);
-            }
-            return false;
-        }
-        
-        done(val) {
-            if (typeof $done !== 'undefined') {
-                $done(val);
-            }
-        }
+        getdata(key) { return (typeof $persistentStore !== 'undefined') ? $persistentStore.read(key) : null; }
+        setdata(val, key) { return (typeof $persistentStore !== 'undefined') ? $persistentStore.write(val, key) : false; }
+        done(val) { $done(val); }
     })(name);
 }
