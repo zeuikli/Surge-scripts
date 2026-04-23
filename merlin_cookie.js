@@ -59,7 +59,11 @@ function autoRegister(sessionToken) {
         url: REGISTER_URL,
         headers: {
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "Mozilla/5.0"
+            "Origin": "https://merlin.2ac.io",
+            "Referer": "https://merlin.2ac.io/register",
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8"
         },
         body: `token=${encodeURIComponent(sessionToken)}`
     }, (err, resp, data) => {
