@@ -14,10 +14,9 @@ function captureSession() {
     const cookieHeader = $request.headers['Cookie'] || $request.headers['cookie'];
     if (!cookieHeader) { $.done({}); return; }
 
-    const match = cookieHeader.match(new RegExp(`${SESSION_COOKIE}=([^;]+)`));
-    if (!match) { $.done({}); return; }
+    const sessionToken = extractSessionToken(cookieHeader);
+    if (!sessionToken) { $.done({}); return; }
 
-    const sessionToken = match[1];
     if (sessionToken === $.getdata("merlin_session_token")) {
         $.done({});
         return;
@@ -28,6 +27,29 @@ function captureSession() {
     console.log("Merlin: 新 Session Token 已儲存，開始向 merlin.2ac.io 換取 API Token...");
 
     autoRegister(sessionToken);
+}
+
+function extractSessionToken(cookieHeader) {
+    const cookies = {};
+    for (const pair of cookieHeader.split(';')) {
+        const eqIdx = pair.indexOf('=');
+        if (eqIdx === -1) continue;
+        const name = pair.substring(0, eqIdx).trim();
+        const value = pair.substring(eqIdx + 1).trim();
+        cookies[name] = value;
+    }
+
+    // 直接匹配（未分割）
+    if (cookies[SESSION_COOKIE]) return cookies[SESSION_COOKIE];
+
+    // 處理 NextAuth.js 分割的 chunked cookie：.0, .1, .2 ...
+    const chunks = [];
+    let i = 0;
+    while (cookies[`${SESSION_COOKIE}.${i}`] !== undefined) {
+        chunks.push(cookies[`${SESSION_COOKIE}.${i}`]);
+        i++;
+    }
+    return chunks.length > 0 ? chunks.join('') : null;
 }
 
 function autoRegister(sessionToken) {
