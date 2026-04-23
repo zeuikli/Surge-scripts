@@ -81,8 +81,9 @@ function autoRegister(sessionToken) {
                 { action: "clipboard", text: apiToken }
             );
         } else {
-            console.log("Merlin: 無法解析 API Token，原始回應:", data.substring(0, 100));
-            $.msg("⚠️ Merlin", "無法解析 API Token", "請手動前往 merlin.2ac.io/register");
+            const preview = data.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 80);
+            console.log("Merlin: 無法解析 API Token，HTTP狀態:", resp && resp.status, "原始回應:", data.substring(0, 200));
+            $.msg("⚠️ Merlin 無法解析回應", `HTTP ${resp && resp.status}`, preview);
         }
         $.done({});
     });
@@ -132,15 +133,15 @@ function parseToken(raw) {
     const uuidMatch = raw.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
     if (uuidMatch) return uuidMatch[0];
 
-    // HTML value= 屬性
-    const valueMatch = raw.match(/value="([A-Za-z0-9_\-\.]{20,})"/);
+    // HTML: input value= 屬性（含更多字元）
+    const valueMatch = raw.match(/value="([A-Za-z0-9_\-\.+\/=:]{20,})"/);
     if (valueMatch) return valueMatch[1];
 
-    // <code> 或 <pre> 區塊
-    const codeMatch = raw.match(/<(?:code|pre)[^>]*>\s*([A-Za-z0-9_\-\.]{20,})\s*<\/(?:code|pre)>/);
-    if (codeMatch) return codeMatch[1];
+    // HTML: <code>, <pre>, <p>, <span>, <td> 內的 token 文字
+    const htmlTagMatch = raw.match(/<(?:code|pre|p|span|td|div)[^>]*>\s*([A-Za-z0-9_\-\.+\/=:]{20,})\s*<\/(?:code|pre|p|span|td|div)>/);
+    if (htmlTagMatch) return htmlTagMatch[1];
 
-    // 純文字 token
+    // 純文字 token（放寬字元範圍）
     if (raw.length >= 16 && raw.length <= 512 && !/[\s<>{}\[\]]/.test(raw)) return raw;
 
     return null;
