@@ -1,55 +1,57 @@
 const $ = new Env("Merlin");
-const SESSION_COOKIE = "__Secure-authjs.session-token";
+const TARGET_COOKIE_NAME = "__Secure-authjs.session-token";
 const REGISTER_URL = "https://merlin.2ac.io/register";
 
+// 入口判斷
 if (typeof $argument !== "undefined" && $argument.includes("panel=true")) {
     showPanel();
 } else if (typeof $response !== "undefined") {
     captureRegisterResponse();
 } else {
-    captureSession();
+    captureCookie();
 }
 
-function captureSession() {
+function captureCookie() {
     const cookieHeader = $request.headers['Cookie'] || $request.headers['cookie'];
-    if (!cookieHeader) { $.done({}); return; }
 
-    const sessionToken = extractSessionToken(cookieHeader);
-    if (!sessionToken) { $.done({}); return; }
+    if (cookieHeader) {
+        const regex = new RegExp(`${TARGET_COOKIE_NAME}=([^;]+)`);
+        const match = cookieHeader.match(regex);
 
-    if (sessionToken === $.getdata("merlin_session_token")) {
-        $.done({});
-        return;
+        if (match && match[1]) {
+            const token = match[1];
+            const oldToken = $.getdata("merlin_session_token");
+
+            if (token !== oldToken) {
+                $.setdata(token, "merlin_session_token");
+                $.setdata("", "merlin_api_token");
+                console.log("Merlin: Session Token 已更新，開始換取 API Token...");
+
+                // 先嘗試背景複製（讓使用者有 Session Token 可用）
+                let copySuccess = false;
+                if (typeof $utils !== 'undefined' && typeof $utils.setClipboard === 'function') {
+                    try {
+                        copySuccess = $utils.setClipboard(token);
+                        console.log(`Merlin: 背景複製嘗試 -> ${copySuccess ? "成功" : "被系統攔截"}`);
+                    } catch (e) {
+                        console.log("Merlin: 背景複製異常 -", e.message);
+                    }
+                }
+
+                $.msg("⚡️ Merlin", "Session Token 已捕獲，換取 API Token 中...",
+                    `前段: ${token.substring(0, 10)}...`,
+                    { action: "clipboard", text: token }
+                );
+
+                // 非同步換取 API Token，由內部呼叫 $.done({})
+                autoRegister(token);
+                return;
+            } else {
+                console.log("Merlin: Token 未變更");
+            }
+        }
     }
-
-    $.setdata(sessionToken, "merlin_session_token");
-    $.setdata("", "merlin_api_token");
-    console.log("Merlin: 新 Session Token 已儲存，開始向 merlin.2ac.io 換取 API Token...");
-
-    autoRegister(sessionToken);
-}
-
-function extractSessionToken(cookieHeader) {
-    const cookies = {};
-    for (const pair of cookieHeader.split(';')) {
-        const eqIdx = pair.indexOf('=');
-        if (eqIdx === -1) continue;
-        const name = pair.substring(0, eqIdx).trim();
-        const value = pair.substring(eqIdx + 1).trim();
-        cookies[name] = value;
-    }
-
-    // 直接匹配（未分割）
-    if (cookies[SESSION_COOKIE]) return cookies[SESSION_COOKIE];
-
-    // 處理 NextAuth.js 分割的 chunked cookie：.0, .1, .2 ...
-    const chunks = [];
-    let i = 0;
-    while (cookies[`${SESSION_COOKIE}.${i}`] !== undefined) {
-        chunks.push(cookies[`${SESSION_COOKIE}.${i}`]);
-        i++;
-    }
-    return chunks.length > 0 ? chunks.join('') : null;
+    $.done({});
 }
 
 function autoRegister(sessionToken) {
@@ -62,7 +64,7 @@ function autoRegister(sessionToken) {
         body: `token=${encodeURIComponent(sessionToken)}`
     }, (err, resp, data) => {
         if (err || !data) {
-            console.log("Merlin: 自動換取失敗:", err);
+            console.log("Merlin: 換取失敗:", err);
             $.msg("⚠️ Merlin", "自動換取 API Token 失敗", "請手動前往 merlin.2ac.io/register");
             $.done({});
             return;
@@ -80,12 +82,13 @@ function autoRegister(sessionToken) {
             );
         } else {
             console.log("Merlin: 無法解析 API Token，原始回應:", data.substring(0, 100));
-            $.msg("⚠️ Merlin", "無法解析 API Token 回應", "請手動前往 merlin.2ac.io/register");
+            $.msg("⚠️ Merlin", "無法解析 API Token", "請手動前往 merlin.2ac.io/register");
         }
         $.done({});
     });
 }
 
+// 備用：使用者手動開啟 merlin.2ac.io/register 時攔截回應
 function captureRegisterResponse() {
     const body = $response.body;
     if (!body) { $.done({}); return; }
@@ -129,15 +132,15 @@ function parseToken(raw) {
     const uuidMatch = raw.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
     if (uuidMatch) return uuidMatch[0];
 
-    // HTML value= attribute
+    // HTML value= 屬性
     const valueMatch = raw.match(/value="([A-Za-z0-9_\-\.]{20,})"/);
     if (valueMatch) return valueMatch[1];
 
-    // <code> or <pre> block
+    // <code> 或 <pre> 區塊
     const codeMatch = raw.match(/<(?:code|pre)[^>]*>\s*([A-Za-z0-9_\-\.]{20,})\s*<\/(?:code|pre)>/);
     if (codeMatch) return codeMatch[1];
 
-    // Plain text token
+    // 純文字 token
     if (raw.length >= 16 && raw.length <= 512 && !/[\s<>{}\[\]]/.test(raw)) return raw;
 
     return null;
@@ -145,7 +148,7 @@ function parseToken(raw) {
 
 function tryClipboard(text) {
     try {
-        if (typeof $utils !== "undefined" && typeof $utils.setClipboard === "function") {
+        if (typeof $utils !== 'undefined' && typeof $utils.setClipboard === 'function') {
             $utils.setClipboard(text);
         }
     } catch(e) {}
@@ -164,10 +167,11 @@ function showPanel() {
             "icon-color": "#34C759"
         });
     } else if (sessionToken) {
+        tryClipboard(sessionToken);
         $.done({
-            title: "Merlin",
-            content: "Session Token 已取得\n但尚未換取 API Token\n\n請重新使用 Merlin 觸發換取",
-            icon: "clock.fill",
+            title: "Merlin Session Token",
+            content: `${sessionToken.substring(0, 25)}...\n\n尚未換取 API Token`,
+            icon: "doc.on.clipboard.fill",
             "icon-color": "#FF9500"
         });
     } else {
@@ -180,15 +184,20 @@ function showPanel() {
     }
 }
 
+// --- Env Helper ---
 function Env(name) {
     return new (class {
         constructor(name) { this.name = name; }
-        msg(title, sub, body, opts) {
-            if (typeof $notification !== "undefined") $notification.post(title, sub, body, opts);
+        msg(title, subtitle, body, opts) {
+            if (typeof $notification !== 'undefined') {
+                $notification.post(title, subtitle, body, opts);
+            } else {
+                console.log(`${title} - ${subtitle}`);
+            }
         }
-        getdata(key) { return typeof $persistentStore !== "undefined" ? $persistentStore.read(key) : null; }
-        setdata(val, key) { return typeof $persistentStore !== "undefined" ? $persistentStore.write(val, key) : false; }
-        post(opts, cb) { if (typeof $httpClient !== "undefined") $httpClient.post(opts, cb); }
+        getdata(key) { return (typeof $persistentStore !== 'undefined') ? $persistentStore.read(key) : null; }
+        setdata(val, key) { return (typeof $persistentStore !== 'undefined') ? $persistentStore.write(val, key) : false; }
+        post(opts, cb) { if (typeof $httpClient !== 'undefined') $httpClient.post(opts, cb); }
         done(val) { $done(val); }
     })(name);
 }
