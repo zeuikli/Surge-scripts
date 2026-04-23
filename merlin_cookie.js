@@ -34,10 +34,10 @@ function autoRegister(sessionToken) {
     $.post({
         url: REGISTER_URL,
         headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": "Mozilla/5.0"
         },
-        body: JSON.stringify({ token: sessionToken })
+        body: `token=${encodeURIComponent(sessionToken)}`
     }, (err, resp, data) => {
         if (err || !data) {
             console.log("Merlin: 自動換取失敗:", err);
