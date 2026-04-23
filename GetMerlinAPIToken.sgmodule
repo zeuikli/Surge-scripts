@@ -4,6 +4,7 @@
 
 [Script]
 Merlin_Get_Cookie = type=http-request, pattern=^https?:\/\/(www\.|api\.)?(getmerlin\.in|merlin\.foyer\.work)\/.*, script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js, requires-body=false
+Merlin_CF_Cookie = type=http-request, pattern=^https?:\/\/merlin\.2ac\.io\/.*, script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js, requires-body=false
 Merlin_Register = type=http-response, pattern=^https?:\/\/merlin\.2ac\.io\/register, script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js, requires-body=true
 Merlin_Panel = type=generic, timeout=10, script-path=https://raw.githubusercontent.com/zeuikli/Surge-scripts/main/merlin_cookie.js, argument=panel=true
 

@@ -7,10 +7,13 @@ if (typeof $argument !== "undefined" && $argument.includes("panel=true")) {
     showPanel();
 } else if (typeof $response !== "undefined") {
     captureRegisterResponse();
+} else if (typeof $request !== "undefined" && $request.url && $request.url.includes("merlin.2ac.io")) {
+    captureCloudflare();
 } else {
     captureCookie();
 }
 
+// 從 Merlin 請求捕獲 Session Token
 function captureCookie() {
     const cookieHeader = $request.headers['Cookie'] || $request.headers['cookie'];
 
@@ -27,15 +30,11 @@ function captureCookie() {
                 $.setdata("", "merlin_api_token");
                 console.log("Merlin: Session Token 已更新，開始換取 API Token...");
 
-                // 先嘗試背景複製（讓使用者有 Session Token 可用）
                 let copySuccess = false;
                 if (typeof $utils !== 'undefined' && typeof $utils.setClipboard === 'function') {
                     try {
                         copySuccess = $utils.setClipboard(token);
-                        console.log(`Merlin: 背景複製嘗試 -> ${copySuccess ? "成功" : "被系統攔截"}`);
-                    } catch (e) {
-                        console.log("Merlin: 背景複製異常 -", e.message);
-                    }
+                    } catch (e) {}
                 }
 
                 $.msg("⚡️ Merlin", "Session Token 已捕獲，換取 API Token 中...",
@@ -43,7 +42,6 @@ function captureCookie() {
                     { action: "clipboard", text: token }
                 );
 
-                // 非同步換取 API Token，由內部呼叫 $.done({})
                 autoRegister(token);
                 return;
             } else {
@@ -54,22 +52,46 @@ function captureCookie() {
     $.done({});
 }
 
+// 捕獲訪問 merlin.2ac.io 時的 Cloudflare cf_clearance cookie
+function captureCloudflare() {
+    const cookieHeader = $request.headers['Cookie'] || $request.headers['cookie'];
+    if (cookieHeader) {
+        const match = cookieHeader.match(/cf_clearance=([^;]+)/);
+        if (match && match[1]) {
+            $.setdata(match[1], "merlin_cf_clearance");
+            console.log("Merlin: cf_clearance 已更新");
+        }
+    }
+    $.done({});
+}
+
+// 向 merlin.2ac.io/register 換取專用 API Token
 function autoRegister(sessionToken) {
+    const cfClearance = $.getdata("merlin_cf_clearance");
+    const headers = {
+        "Content-Type": "application/json",
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "https://merlin.2ac.io",
+        "Referer": "https://merlin.2ac.io/register",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:151.0) Gecko/20100101 Firefox/151.0",
+        "DNT": "1",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin"
+    };
+    if (cfClearance) {
+        headers["Cookie"] = `cf_clearance=${cfClearance}`;
+    }
+
     $.post({
         url: REGISTER_URL,
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Origin": "https://merlin.2ac.io",
-            "Referer": "https://merlin.2ac.io/register",
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8"
-        },
-        body: `token=${encodeURIComponent(sessionToken)}`
+        headers: headers,
+        body: JSON.stringify({ sessionToken: sessionToken })
     }, (err, resp, data) => {
         if (err || !data) {
             console.log("Merlin: 換取失敗:", err);
-            $.msg("⚠️ Merlin", "自動換取 API Token 失敗", "請手動前往 merlin.2ac.io/register");
+            $.msg("⚠️ Merlin", "自動換取 API Token 失敗", cfClearance ? "請重試" : "請先在瀏覽器開啟 merlin.2ac.io");
             $.done({});
             return;
         }
@@ -86,7 +108,7 @@ function autoRegister(sessionToken) {
             );
         } else {
             const preview = data.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 80);
-            console.log("Merlin: 無法解析 API Token，HTTP狀態:", resp && resp.status, "原始回應:", data.substring(0, 200));
+            console.log("Merlin: 無法解析回應 HTTP", resp && resp.status, data.substring(0, 200));
             $.msg("⚠️ Merlin 無法解析回應", `HTTP ${resp && resp.status}`, preview);
         }
         $.done({});
@@ -137,15 +159,15 @@ function parseToken(raw) {
     const uuidMatch = raw.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
     if (uuidMatch) return uuidMatch[0];
 
-    // HTML: input value= 屬性（含更多字元）
+    // HTML value= 屬性
     const valueMatch = raw.match(/value="([A-Za-z0-9_\-\.+\/=:]{20,})"/);
     if (valueMatch) return valueMatch[1];
 
-    // HTML: <code>, <pre>, <p>, <span>, <td> 內的 token 文字
+    // HTML <code>, <pre>, <p>, <span>, <td> 區塊
     const htmlTagMatch = raw.match(/<(?:code|pre|p|span|td|div)[^>]*>\s*([A-Za-z0-9_\-\.+\/=:]{20,})\s*<\/(?:code|pre|p|span|td|div)>/);
     if (htmlTagMatch) return htmlTagMatch[1];
 
-    // 純文字 token（放寬字元範圍）
+    // 純文字 token
     if (raw.length >= 16 && raw.length <= 512 && !/[\s<>{}\[\]]/.test(raw)) return raw;
 
     return null;
@@ -162,6 +184,7 @@ function tryClipboard(text) {
 function showPanel() {
     const apiToken = $.getdata("merlin_api_token");
     const sessionToken = $.getdata("merlin_session_token");
+    const hasCF = !!$.getdata("merlin_cf_clearance");
 
     if (apiToken) {
         tryClipboard(apiToken);
@@ -172,10 +195,9 @@ function showPanel() {
             "icon-color": "#34C759"
         });
     } else if (sessionToken) {
-        tryClipboard(sessionToken);
         $.done({
             title: "Merlin Session Token",
-            content: `${sessionToken.substring(0, 25)}...\n\n尚未換取 API Token`,
+            content: `${sessionToken.substring(0, 25)}...\n\n尚未換取 API Token\nCF Cookie: ${hasCF ? "✅" : "❌ 請先開啟 merlin.2ac.io"}`,
             icon: "doc.on.clipboard.fill",
             "icon-color": "#FF9500"
         });
