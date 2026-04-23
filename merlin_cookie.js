@@ -96,14 +96,23 @@ function autoRegister(sessionToken) {
             return;
         }
 
-        const apiToken = parseToken(data);
+        let apiToken = null;
+        try {
+            const json = JSON.parse(data);
+            if (json.success && json.authToken) {
+                apiToken = json.authToken;
+            }
+        } catch(e) {}
+
+        if (!apiToken) apiToken = parseToken(data);
+
         if (apiToken) {
             $.setdata(apiToken, "merlin_api_token");
             tryClipboard(apiToken);
             $.msg(
                 "✅ Merlin API Token 已取得",
-                "👉 點擊此通知以複製",
-                apiToken.substring(0, 20) + "...",
+                apiToken,
+                "👉 點擊此通知以複製到剪貼簿",
                 { action: "clipboard", text: apiToken }
             );
         } else {
