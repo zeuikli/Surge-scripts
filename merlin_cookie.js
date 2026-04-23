@@ -140,7 +140,7 @@ function parseToken(raw) {
 
     try {
         const json = JSON.parse(raw);
-        const keys = ["token", "api_token", "apiToken", "key", "api_key", "access_token", "accessToken"];
+        const keys = ["authToken", "token", "api_token", "apiToken", "key", "api_key", "access_token", "accessToken"];
         for (const k of keys) {
             if (json[k] && typeof json[k] === "string" && json[k].length > 8) return json[k];
         }
