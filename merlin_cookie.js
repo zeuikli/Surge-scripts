@@ -97,12 +97,18 @@ function autoRegister(sessionToken) {
         }
 
         let apiToken = null;
-        try {
-            const json = JSON.parse(data);
-            if (json.success && json.authToken) {
-                apiToken = json.authToken;
-            }
-        } catch(e) {}
+
+        // 直接用 regex 抓 authToken（最可靠，跳過 JSON.parse 編碼問題）
+        const authMatch = data.match(/"authToken"\s*:\s*"([^"]+)"/);
+        if (authMatch && authMatch[1]) apiToken = authMatch[1];
+
+        // fallback: 完整 JSON parse
+        if (!apiToken) {
+            try {
+                const json = JSON.parse(data.trim());
+                apiToken = json.authToken || json.token || json.api_token || json.apiToken;
+            } catch(e) {}
+        }
 
         if (!apiToken) apiToken = parseToken(data);
 
